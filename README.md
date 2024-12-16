@@ -22,9 +22,9 @@
 
 ###  Moodify is built using the following technologies:
 
-- This project uses the [React Native](https://reactnative.dev/). A cross-platform mobile app development framework that enables a seamless experience for both iOS and Android users.
+- This project uses [React](https://reactjs.org/) and [React Native](https://reactnative.dev/) for the frontend. React is used for the web admin dashboard, while React Native powers the mobile application for a seamless experience on both iOS and Android.
 - For backend services, the app uses [Node.js](https://nodejs.org/) with [Express.js](https://expressjs.com/). Node.js provides a scalable runtime environment, and Express.js is used to handle APIs and backend logic efficiently.
-- For persistent storage (database), the app uses [MongoDB](https://www.mongodb.com/). MongoDB is a NoSQL database that stores user data, mood logs, playlists, and activity records.
+- For persistent storage (database), the app uses [PostgreSQL](https://www.postgresql.org/). PostgreSQL is a relational database that stores user data, mood logs, playlists, and activity records.
 - For authentication, the app integrates [Firebase Authentication](https://firebase.google.com/docs/auth), enabling secure login with Google and other methods.
 - The app follows modern design principles and uses a clean and intuitive user interface for an optimal user experience.
 - The app uses the font ["Avenir Next LT Pro"](https://fontsgeek.com/fonts/avenir-next-lt-pro-regular) as its primary font, ensuring a clean and modern design for an intuitive user experience.
@@ -51,27 +51,102 @@
 
 ###  Architecting Data Excellence: Innovative Database Design Strategies:
 
-Moodify uses [MongoDB](https://www.mongodb.com/), a NoSQL database, to store and manage all application data efficiently. Below is the structure of the main collections in the database:
+Moodify uses [PostgreSQL](https://www.postgresql.org/), a relational database, to store and manage all application data efficiently. Below is the structure of the main tables in the database:
 
-- **Users Collection**: Stores user profiles and authentication data (linked with Firebase Authentication).
-  - Fields: `userId`, `name`, `email`, `profilePicture`, `preferences`
+- **Users Table**:
+  ```sql
+  CREATE TABLE Users (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password TEXT,
+      spotify_id VARCHAR(255) UNIQUE,
+      access_token TEXT,
+      refresh_token TEXT,
+      profile_picture TEXT,
+      role ENUM('user', 'admin') NOT NULL,
+      created_at TIMESTAMP DEFAULT now(),
+      updated_at TIMESTAMP DEFAULT now()
+  );
+  ```
 
-- **Mood Logs Collection**: Tracks user mood entries along with timestamps and optional activity tags.
-  - Fields: `logId`, `userId` (foreign key), `mood`, `activity`, `timestamp`
+- **SpotifyUserData Table**:
+  ```sql
+  CREATE TABLE SpotifyUserData (
+      id SERIAL PRIMARY KEY,
+      user_id INT REFERENCES Users(id),
+      liked_songs JSONB,
+      top_artists JSONB,
+      playlists JSONB,
+      created_at TIMESTAMP DEFAULT now(),
+      updated_at TIMESTAMP DEFAULT now()
+  );
+  ```
 
-- **Playlists Collection**: Links mood states and activities to personalized playlists.
-  - Fields: `playlistId`, `userId` (foreign key), `mood`, `activity`, `playlistUrl`, `createdAt`
+- **SpotifyGlobalData Table**:
+  ```sql
+  CREATE TABLE SpotifyGlobalData (
+      id SERIAL PRIMARY KEY,
+      type ENUM('artist', 'track', 'album') NOT NULL,
+      spotify_id VARCHAR(255) UNIQUE NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      metadata JSONB NOT NULL,
+      created_at TIMESTAMP DEFAULT now(),
+      updated_at TIMESTAMP DEFAULT now()
+  );
+  ```
 
-- **AI Interactions Collection**: Logs user interactions with the AI coach, including questions and recommendations.
-  - Fields: `interactionId`, `userId` (foreign key), `interactionType`, `content`, `timestamp`
+- **MoodDetectionInputs Table**:
+  ```sql
+  CREATE TABLE MoodDetectionInputs (
+      id SERIAL PRIMARY KEY,
+      user_id INT REFERENCES Users(id),
+      input_type VARCHAR(50) NOT NULL,
+      input_data TEXT,
+      detected_mood VARCHAR(50) NOT NULL,
+      timestamp TIMESTAMP DEFAULT now()
+  );
+  ```
 
-- **Challenges Collection**: Stores personalized challenges provided by the AI coach.
-  - Fields: `challengeId`, `userId` (foreign key), `challengeDescription`, `status`, `dueDate`
+- **Challenges Table**:
+  ```sql
+  CREATE TABLE Challenges (
+      id SERIAL PRIMARY KEY,
+      user_id INT REFERENCES Users(id),
+      text TEXT NOT NULL,
+      type VARCHAR(50) NOT NULL,
+      status ENUM('pending', 'completed', 'rejected') NOT NULL,
+      completed_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT now()
+  );
+  ```
+
+- **AIMusicSuggestions Table**:
+  ```sql
+  CREATE TABLE AIMusicSuggestions (
+      id SERIAL PRIMARY KEY,
+      user_id INT REFERENCES Users(id),
+      mood VARCHAR(50) NOT NULL,
+      suggestion_type VARCHAR(50) NOT NULL,
+      suggestion_details JSONB NOT NULL,
+      environment_factors JSONB,
+      created_at TIMESTAMP DEFAULT now()
+  );
+  ```
+
+- **AIChallenges Table**:
+  ```sql
+  CREATE TABLE AIChallenges (
+      id SERIAL PRIMARY KEY,
+      challenge_id INT REFERENCES Challenges(id),
+      environment JSONB NOT NULL,
+      created_at TIMESTAMP DEFAULT now()
+  );
+  ```
 
 ### ER Diagram
 
-- Insert ER Diagram here
-
+<img src="./readme/diagram.png"/>
 
 <br><br>
 
@@ -144,12 +219,23 @@ _Below is an example of how you can instruct your audience on installing and set
 
 1. Get a free API Key at [example](https://example.com)
 2. Clone the repo
-   git clone [github](https://github.com/hananeltassa/Moodify.git)
+   ```sh
+   git clone [github](https://github.com/hananeltassa/Moodify) 
+   ```
 3. Install NPM packages
    ```sh
    npm install
    ```
-4. Enter your API in `config.js`
+4. Set up PostgreSQL:
+   - Create a database in PostgreSQL.
+   - Add connection details (e.g., `DB_NAME`, `DB_USER`, `DB_PASSWORD`) to `.env` file.
+
+5. Run migrations to set up the database schema:
+   ```sh
+   npm run migrations
+   ```
+
+6. Enter your API in `config.js`
    ```js
    const API_KEY = 'ENTER YOUR API';
    ```
