@@ -146,7 +146,8 @@ Moodify uses [PostgreSQL](https://www.postgresql.org/), a relational database, t
 
 ### ER Diagram
 
-<img src=".readme/diagram.png"/>
+<img src="./readme/diagram.png"/>
+
 
 <br><br>
 
